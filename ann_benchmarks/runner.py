@@ -10,10 +10,11 @@ import colors
 import docker
 import numpy
 import psutil
+import math
 
 from ann_benchmarks.algorithms.definitions import (Definition,
                                                    instantiate_algorithm)
-from ann_benchmarks.datasets import get_dataset, DATASETS
+from ann_benchmarks.datasets import get_dataset, get_dataset_batch, DATASETS
 from ann_benchmarks.distance import metrics, dataset_transform
 from ann_benchmarks.results import store_results
 
@@ -41,7 +42,9 @@ def run_individual_query(algo, X_train, X_test, distance, count, run_count,
                 start = time.time()
                 candidates = algo.query(v, count)
                 total = (time.time() - start)
-            candidates = [(int(idx), float(metrics[distance]['distance'](v, X_train[idx])))  # noqa
+            # noqa 计算query和召回结果的距离, 【按数据集指定的度量计算相似性度量，否则返回的相似性结果有索引决定】
+            # 注意使用是， 确认 algo.query检索返回的结果
+            candidates = [(int(idx), float(metrics[distance]['distance'](v, X_train[idx])))
                           for idx in candidates]
             n_items_processed[0] += 1
             if n_items_processed[0] % 1000 == 0:
@@ -84,7 +87,7 @@ def run_individual_query(algo, X_train, X_test, distance, count, run_count,
         "best_search_time": best_search_time,
         "candidates": avg_candidates,
         "expect_extra": verbose,
-        "name": str(algo),
+        "name": str(algo), #faiss hnsw和hnsw_sq8不分原因在这
         "run_count": run_count,
         "distance": distance,
         "count": int(count)
@@ -106,12 +109,18 @@ function""" % (definition.module, definition.constructor, definition.arguments)
     D, dimension = get_dataset(dataset)
     X_train = numpy.array(D['train'])
     X_test = numpy.array(D['test'])
+    #X_train = D['train']
+    #X_test = D['test']
+    #X_train = numpy.array(D['train'], dtype="float32")
+    #X_test = numpy.array(D['test'], dtype="float32")
+    print("load data done")
     distance = D.attrs['distance']
     print('got a train set of size (%d * %d)' % (X_train.shape[0], dimension))
     print('got %d queries' % len(X_test))
-
-    X_train, X_test = dataset_transform(D)
-
+    if D.attrs.get('type', 'dense') == 'sparse':
+        X_train, X_test = dataset_transform(D) ##如果是sparse数据需要进行转换
+    X_test = X_test[0:100]
+    print('got %d queries' % len(X_test))
     try:
         prepared_queries = False
         if hasattr(algo, "supports_prepared_queries"):
@@ -120,6 +129,10 @@ function""" % (definition.module, definition.constructor, definition.arguments)
         t0 = time.time()
         memory_usage_before = algo.get_memory_usage()
         algo.fit(X_train)
+        #X_train = 0
+        #page_size = 10000000
+        #X1_train = get_dataset_batch(dataset, "./data/fengchao_30M", page_size)
+        #algo.fit_batch(X1_train, dimension)
         build_time = time.time() - t0
         index_size = algo.get_memory_usage() - memory_usage_before
         print('Built index in', build_time)
@@ -131,6 +144,7 @@ function""" % (definition.module, definition.constructor, definition.arguments)
         if not query_argument_groups:
             query_argument_groups = [[]]
 
+        ##遍历所有查询参数进行检索
         for pos, query_arguments in enumerate(query_argument_groups, 1):
             print("Running query argument group %d of %d..." %
                   (pos, len(query_argument_groups)))

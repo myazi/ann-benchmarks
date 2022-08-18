@@ -8,7 +8,7 @@ import argparse
 from ann_benchmarks.datasets import get_dataset
 from ann_benchmarks.algorithms.definitions import get_definitions
 from ann_benchmarks.plotting.metrics import all_metrics as metrics
-from ann_benchmarks.plotting.utils import (get_plot_label, compute_metrics,
+from ann_benchmarks.plotting.utils import (get_plot_label, compute_metrics, compute_all_metrics_ywj,
                                            create_linestyles, create_pointset)
 from ann_benchmarks.results import (store_results, load_all_results,
                                     get_unique_algorithms)
@@ -144,16 +144,20 @@ if __name__ == "__main__":
         args.output = 'results/%s.png' % (args.dataset + ('-batch' if args.batch else ''))
         print('writing output to %s' % args.output)
 
-    dataset, _ = get_dataset(args.dataset)
-    count = int(args.count)
-    unique_algorithms = get_unique_algorithms()
-    results = load_all_results(args.dataset, count, args.batch)
+    dataset, _ = get_dataset(args.dataset) #拿到数据中的 近邻距离&距离度量
+    count = int(args.count) # topk
+    unique_algorithms = get_unique_algorithms() # 获取算法
+    results = load_all_results(args.dataset, count, args.batch) # 从结果文件中加载数据
     linestyles = create_linestyles(sorted(unique_algorithms))
+    """
     runs = compute_metrics(np.array(dataset["distances"]),
-                           results, args.x_axis, args.y_axis, args.recompute)
+                           results, args.x_axis, args.y_axis, args.recompute) #依据近邻距离&实验结果计算实验指标
     if not runs:
         raise Exception('Nothing to plot')
 
     create_plot(runs, args.raw, args.x_scale,
                 args.y_scale, args.x_axis, args.y_axis, args.output,
                 linestyles, args.batch)
+    """
+    compute_all_metrics_ywj(dataset,
+                results, args.recompute)

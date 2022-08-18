@@ -16,9 +16,11 @@ class Scann(BaseANN):
 
   def fit(self, X):
     if self.dist == "dot_product":
-      spherical = True
-      X[np.linalg.norm(X, axis=1) == 0] = 1.0 / np.sqrt(X.shape[1])
-      X /= np.linalg.norm(X, axis=1)[:, np.newaxis]
+      ##下面会对建库向量进行归一化
+      #spherical = True
+      #X[np.linalg.norm(X, axis=1) == 0] = 1.0 / np.sqrt(X.shape[1])
+      #X /= np.linalg.norm(X, axis=1)[:, np.newaxis]
+      spherical = False
     else:
       spherical = False
 
@@ -29,6 +31,8 @@ class Scann(BaseANN):
 
   def set_query_arguments(self, leaves_reorder):
       self.leaves_to_search, self.reorder = leaves_reorder
+      self.name = "scann n_leaves={} avq_threshold={:.02f} dims_per_block={} reorder={} leaves_to_search={}".format(
+              self.n_leaves, self.avq_threshold, self.dims_per_block, self.reorder, self.leaves_to_search)
 
   def query(self, v, n):
     return self.searcher.search(v, n, self.reorder, self.leaves_to_search)[0]

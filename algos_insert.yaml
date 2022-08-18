@@ -1,0 +1,162 @@
+float:
+  angular:
+    1_hnsw_test(faiss):
+     docker-tag: ann-benchmarks-faiss
+     module: ann_benchmarks.algorithms.faiss_hnsw_test
+     constructor: FaissHNSW_test
+     base-args: ["@metric"]
+     run-groups:
+       M-8:
+         arg-groups:
+           - {"M": 8,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-16:
+         arg-groups:
+           - {"M": 16,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-32:
+         arg-groups:
+           - {"M": 32,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-64:
+         arg-groups:
+           - {"M": 64,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+
+    2_hnsw_test(faiss):
+     docker-tag: ann-benchmarks-faiss
+     module: ann_benchmarks.algorithms.faiss_hnsw_test
+     constructor: FaissHNSW_test
+     base-args: ["@metric"]
+     run-groups:
+       M-8:
+         arg-groups:
+           - {"M": 8,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-16:
+         arg-groups:
+           - {"M": 16,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-32:
+         arg-groups:
+           - {"M": 32,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-64:
+         arg-groups:
+           - {"M": 64,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+
+    3_hnsw_test(faiss):
+     docker-tag: ann-benchmarks-faiss
+     module: ann_benchmarks.algorithms.faiss_hnsw_test
+     constructor: FaissHNSW_test
+     base-args: ["@metric"]
+     run-groups:
+       M-8:
+         arg-groups:
+           - {"M": 8,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-16:
+         arg-groups:
+           - {"M": 16,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-32:
+         arg-groups:
+           - {"M": 32,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-64:
+         arg-groups:
+           - {"M": 64,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+
+    4_hnsw_test(faiss):
+     docker-tag: ann-benchmarks-faiss
+     module: ann_benchmarks.algorithms.faiss_hnsw_test
+     constructor: FaissHNSW_test
+     base-args: ["@metric"]
+     run-groups:
+       M-8:
+         arg-groups:
+           - {"M": 8,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-16:
+         arg-groups:
+           - {"M": 16,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-32:
+         arg-groups:
+           - {"M": 32,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-64:
+         arg-groups:
+           - {"M": 64,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+
+    5_hnsw_test(faiss):
+     docker-tag: ann-benchmarks-faiss
+     module: ann_benchmarks.algorithms.faiss_hnsw_test
+     constructor: FaissHNSW_test
+     base-args: ["@metric"]
+     run-groups:
+       M-8:
+         arg-groups:
+           - {"M": 8,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-16:
+         arg-groups:
+           - {"M": 16,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-32:
+         arg-groups:
+           - {"M": 32,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-64:
+         arg-groups:
+           - {"M": 64,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+
+    6_hnsw_test(faiss):
+     docker-tag: ann-benchmarks-faiss
+     module: ann_benchmarks.algorithms.faiss_hnsw_test
+     constructor: FaissHNSW_test
+     base-args: ["@metric"]
+     run-groups:
+       M-8:
+         arg-groups:
+           - {"M": 8,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-16:
+         arg-groups:
+           - {"M": 16,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-32:
+         arg-groups:
+           - {"M": 32,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-64:
+         arg-groups:
+           - {"M": 64,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+
+    7_hnsw_test(faiss):
+     docker-tag: ann-benchmarks-faiss
+     module: ann_benchmarks.algorithms.faiss_hnsw_test
+     constructor: FaissHNSW_test
+     base-args: ["@metric"]
+     run-groups:
+       M-8:
+         arg-groups:
+           - {"M": 8,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-16:
+         arg-groups:
+           - {"M": 16,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-32:
+         arg-groups:
+           - {"M": 32,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+       M-64:
+         arg-groups:
+           - {"M": 64,  "efConstruction": 500}
+         query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]

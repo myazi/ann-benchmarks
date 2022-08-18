@@ -7,6 +7,7 @@ from urllib.request import urlopen
 from urllib.request import urlretrieve
 
 from ann_benchmarks.distance import dataset_transform
+from data2h5 import get_train, get_test, b64str_2_vec
 
 
 def download(src, dst):
@@ -40,6 +41,48 @@ def get_dataset(which):
 
     return hdf5_f, dimension
 
+def get_dataset_batch(dataset, inp_file, page_size=1000000, dim=768):
+    line_count = int(0)
+    insert_count = int(0)
+
+    X = numpy.zeros((page_size, dim), dtype="float32")
+    with open(inp_file, "r") as f:
+        while 1:
+            line = f.readline()
+            line_count += 1
+            if not line or line_count > 1000000000:
+                break
+            fields = line.split("\t")
+            if(len(fields) < 5):
+                print("fields error: %d" % line_index)
+                continue
+            try:
+                vector_ub = b64str_2_vec(fields[4])
+                vec_norm = [numpy.asarray(vector_ub)]
+                vector = vec_norm[0]
+            except:
+                print("base64 error: %d" % line_count)
+                continue
+            X[insert_count,:] = vector
+            insert_count += 1
+            if line_count % page_size == 0:
+                #X = X / numpy.linalg.norm(X, axis=1)[:, numpy.newaxis] ##数据侧不做归一化，只在算法按需归一化
+                yield X
+                print(f"insert count = %d" % line_count)
+                X = numpy.zeros((page_size, dim), dtype="float32")
+                insert_count = int(0)
+
+        if insert_count > 0:
+            #X = X / numpy.linalg.norm(X, axis=1)[:, numpy.newaxis] ##数据侧不做归一化，只在算法按需归一化
+            yield X[0:insert_count, :]
+            print(f"insert count = %d" % line_count)
+
+def aurora(out_fn):
+    train_file = "./data/fengchao_5M" ## 指定aurora 训练数据
+    test_file = "./data/query_1W.emb" ## 指定aurora 测试数据
+    X_train = get_train(train_file)
+    X_test = get_test(test_file)
+    write_output(numpy.array(X_train), numpy.array(X_test), out_fn, 'ip') ## 指定生成数据的度量
 
 # Everything below this line is related to creating datasets
 # You probably never need to do this at home,
@@ -471,6 +514,10 @@ def movielens20m(out_fn):
     movielens('ml-20m.zip', 'ml-20m/ratings.csv', out_fn, ',', True)
 
 DATASETS = {
+    'aurora_1M': lambda out_fn: aurora(out_fn),
+    'aurora_10M': lambda out_fn: aurora(out_fn),
+    'aurora_5M': lambda out_fn: aurora(out_fn),
+    'aurora_30M': lambda out_fn: aurora(out_fn),
     'deep-image-96-angular': deep_image,
     'fashion-mnist-784-euclidean': fashion_mnist,
     'gist-960-euclidean': gist,

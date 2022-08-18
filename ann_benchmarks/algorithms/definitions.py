@@ -21,7 +21,7 @@ def instantiate_algorithm(definition):
           (definition.module, definition.constructor, definition.arguments))
     module = importlib.import_module(definition.module)
     constructor = getattr(module, definition.constructor)
-    return constructor(*definition.arguments)
+    return constructor(*definition.arguments)##返回参数下的某种索引类型,初始化参数格式见arguments
 
 
 class InstantiationStatus(Enum):

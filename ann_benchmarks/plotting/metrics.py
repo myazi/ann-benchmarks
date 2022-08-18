@@ -2,41 +2,67 @@ from __future__ import absolute_import
 import numpy as np
 
 
-def knn_threshold(data, count, epsilon):
-    return data[count - 1] + epsilon
+def knn_threshold(data, count, epsilon, sim_or_dis="arugula"):
+    if (sim_or_dis) != "ip": #适合于距离度量
+        return data[count - 1] + epsilon
+    elif sim_or_dis == "ip": #适合于相似性度量
+        return data[count - 1] * ( 1 - epsilon)
 
 
-def epsilon_threshold(data, count, epsilon):
-    return data[count - 1] * (1 + epsilon)
+def epsilon_threshold(data, count, epsilon, sim_or_dis="arugula"):
+    if (sim_or_dis) != "ip": #适合于距离度量
+        return data[count - 1] * (1 + epsilon)
+    elif sim_or_dis == "ip": #适合于相似性度量
+        return data[count - 1] * ( 1 - epsilon)
 
 
 def get_recall_values(dataset_distances, run_distances, count, threshold,
-                      epsilon=1e-3):
+                      epsilon=1e-3, sim_or_dis="arugula"):
     recalls = np.zeros(len(run_distances))
     for i in range(len(run_distances)):
-        t = threshold(dataset_distances[i], count, epsilon)
+        t = threshold(dataset_distances[i], count, epsilon, sim_or_dis)
         actual = 0
         for d in run_distances[i][:count]:
-            if d <= t:
-                actual += 1
+            if sim_or_dis !="ip":
+                #d /= 2 ##针对L2=2(1-IP)
+                if d <= t:
+                    actual += 1
+            if sim_or_dis =="ip":
+                if d >= t:
+                    actual += 1
         recalls[i] = actual
     return (np.mean(recalls) / float(count),
             np.std(recalls) / float(count),
             recalls)
 
+def knn_id(dataset_neighbors, run_neighbors, count, metrics, epsilon=1e-3):
+    recalls = np.zeros(len(run_neighbors))
+    if 'knn_id' not in metrics:
+        print('Computing knn_id metrics')
+        knn_metrics = metrics.create_group('knn_id')
+        for i in range(len(run_neighbors)):
+            actual = 0
+            for j  in range(count):
+                if (run_neighbors[i][j] + 1) in dataset_neighbors[i][:count]: #标准结果id是从1开始, run_neighbors中id是从0开始
+                    actual += 1
+            recalls[i] = actual
+        knn_metrics.attrs['mean'] = np.mean(recalls) / float(count)
+        knn_metrics.attrs['std'] = np.std(recalls) / float(count)
+        knn_metrics['recalls'] = recalls
+    return metrics['knn_id']
 
-def knn(dataset_distances, run_distances, count, metrics, epsilon=1e-3):
+def knn(sim_or_dis, dataset_distances, run_distances, count, metrics, epsilon=1e-3):
     if 'knn' not in metrics:
         print('Computing knn metrics')
         knn_metrics = metrics.create_group('knn')
         mean, std, recalls = get_recall_values(dataset_distances,
                                                run_distances, count,
-                                               knn_threshold, epsilon)
+                                               knn_threshold, epsilon, sim_or_dis)
         knn_metrics.attrs['mean'] = mean
         knn_metrics.attrs['std'] = std
         knn_metrics['recalls'] = recalls
     else:
-        print("Found cached result")
+        print("Found cached result knn")
     return metrics['knn']
 
 
@@ -52,7 +78,7 @@ def epsilon(dataset_distances, run_distances, count, metrics, epsilon=0.01):
         epsilon_metrics.attrs['std'] = std
         epsilon_metrics['recalls'] = recalls
     else:
-        print("Found cached result")
+        print("Found cached result epsilon")
     return metrics[s]
 
 
@@ -71,7 +97,7 @@ def rel(dataset_distances, run_distances, metrics):
             metrics.attrs['rel'] = total_candidate_distance / \
                 total_closest_distance
     else:
-        print("Found cached result")
+        print("Found cached result rel")
     return metrics.attrs['rel']
 
 
@@ -108,9 +134,15 @@ def dist_computations(queries, attrs):
 
 
 all_metrics = {
+    "k-nn_id": {
+        "description": "Recall",
+        "function": lambda true_neighbors, run_neighbors, metrics, times, run_attrs: knn_id(true_neighbors, run_neighbors, run_attrs["count"], metrics).attrs['mean'],  # noqa
+        "worst": float("-inf"),
+        "lim": [0.0, 1.03]
+    },
     "k-nn": {
         "description": "Recall",
-        "function": lambda true_distances, run_distances, metrics, times, run_attrs: knn(true_distances, run_distances, run_attrs["count"], metrics).attrs['mean'],  # noqa
+        "function": lambda sim_or_dis, true_distances, run_distances, metrics, times, run_attrs: knn(sim_or_dis, true_distances, run_distances, run_attrs["count"], metrics).attrs['mean'],  # noqa
         "worst": float("-inf"),
         "lim": [0.0, 1.03]
     },

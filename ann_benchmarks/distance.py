@@ -6,6 +6,9 @@ import numpy as np
 def pdist(a, b, metric):
     return scipy_pdist([a, b], metric=metric)[0]
 
+def dot_product(v1, v2):
+    ip = np.dot(v1, v2)
+    return ip
 # Need own implementation of jaccard because scipy's
 # implementation is different
 
@@ -32,6 +35,10 @@ metrics = {
     },
     'angular': {
         'distance': lambda a, b: pdist(a, b, "cosine"),
+        'distance_valid': lambda a: True
+    },
+    'ip': {
+        'distance': lambda a, b: dot_product(a, b),
         'distance_valid': lambda a: True
     }
 }

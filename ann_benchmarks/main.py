@@ -37,7 +37,7 @@ def run_worker(cpu, args, queue):
     while not queue.empty():
         definition = queue.get()
         if args.local:
-            run(definition, args.dataset, args.count, args.runs, args.batch)
+            run(definition, args.dataset, args.count, args.runs, args.batch)#算法、数据集、topk、检索测试次数、一次检索batch
         else:
             memory_margin = 500e6  # reserve some extra memory for misc stuff
             mem_limit = int((psutil.virtual_memory().available - memory_margin) / args.parallelism)
@@ -103,7 +103,8 @@ def main():
         '--local',
         action='store_true',
         help='If set, then will run everything locally (inside the same '
-             'process) rather than using Docker')
+             'process) rather than using Docker',
+             default=True)
     parser.add_argument(
         '--batch',
         action='store_true',
@@ -141,7 +142,7 @@ def main():
 
     dataset, dimension = get_dataset(args.dataset)
     point_type = dataset.attrs.get('point_type', 'float')
-    distance = dataset.attrs['distance']
+    distance = dataset.attrs['distance']#数据集中指定距离度量
     definitions = get_definitions(
         args.definitions, dimension, point_type, distance, args.count)
 
@@ -159,7 +160,7 @@ def main():
             fn = get_result_filename(args.dataset,
                                      args.count, definition,
                                      query_arguments, args.batch)
-            if args.force or not os.path.exists(fn):
+            if args.force or not os.path.exists(fn):#是否运行过 & 是否强制重新运行
                 not_yet_run.append(query_arguments)
         if not_yet_run:
             if definition.query_argument_groups:

@@ -58,8 +58,8 @@ def compute_metrics(true_nn_distances, res, metric_1, metric_2,
             true_nn_distances,
             run_distances, metrics_cache, times, properties)
 
-        print('%3d: %80s %12.3f %12.3f' %
-              (i, algo_name, metric_1_value, metric_2_value))
+        print('%3d: \t %s \t %s \t %.3f \t %.3f' %
+                (i, algo, algo_name, metric_1_value, metric_2_value))
 
         all_results.setdefault(algo, []).append(
             (algo, algo_name, metric_1_value, metric_2_value))
@@ -88,6 +88,37 @@ def compute_all_metrics(true_nn_distances, run, properties, recompute=False):
         if v:
             print('%s: %g' % (name, v))
     return (algo, algo_name, results)
+
+def compute_all_metrics_ywj(dataset, res, recompute=False):
+    true_nn_distances = np.array(dataset["distances"])
+    true_nn_neighbors = np.array(dataset["neighbors"])
+    sim_or_dis = dataset.attrs["distance"]
+    for i, (properties, run) in enumerate(res):
+        algo = properties["algo"]
+        algo_name = properties["name"]
+        results = {}
+        # cache distances to avoid access to hdf5 file
+        run_distances = np.array(run["distances"])
+        run_neighbors = np.array(run["neighbors"])
+        times = np.array(run['times'])
+        if recompute and 'metrics' in run:
+            del run['metrics']
+        metrics_cache = get_or_create_metrics(run)
+        vs = []
+        for name, metric in metrics.items():
+            if name == "k-nn_id":
+                v = metric["function"](
+                        true_nn_neighbors, run_neighbors, metrics_cache, times, properties)
+            elif name == "k-nn":
+                v = metric["function"](
+                    sim_or_dis, true_nn_distances, run_distances, metrics_cache, times, properties)
+            else:
+                v = metric["function"](
+                    true_nn_distances, run_distances, metrics_cache, times, properties)
+            vs.append(name + "#" + str(v))
+            #vs.append(str(v))
+        print(algo + "\t" + algo_name + "\t" + "\t".join(vs))
+    #return (algo, algo_name, results)
 
 def compute_metrics_all_runs(dataset, res, recompute=False):
     true_nn_distances=list(dataset['distances'])

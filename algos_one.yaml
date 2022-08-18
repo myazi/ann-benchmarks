@@ -1,0 +1,22 @@
+float:
+  angular:
+    hnswlib:
+      docker-tag: ann-benchmarks-hnswlib
+      module: ann_benchmarks.algorithms.hnswlib
+      constructor: HnswLib
+      base-args: ["@metric"]
+      run-groups:
+        M-8:
+          arg-groups:
+            - {"M": 8,  "efConstruction": 500}
+          query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800]]
+    hnsw(faiss):
+     docker-tag: ann-benchmarks-faiss
+     module: ann_benchmarks.algorithms.faiss_hnsw
+     constructor: FaissHNSW
+     base-args: ["@metric"]
+     run-groups:
+        M-32:
+          arg-groups:
+            - {"M": 32,  "efConstruction": 500}
+          query-args: [[10, 20, 40, 80, 120, 200, 400, 600, 800, 1000]]

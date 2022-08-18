@@ -8,7 +8,7 @@ from ann_benchmarks.algorithms.base import BaseANN
 
 class HnswLib(BaseANN):
     def __init__(self, metric, method_param):
-        self.metric = {'angular': 'cosine', 'euclidean': 'l2'}[metric]
+        self.metric = {'angular': 'cosine', 'euclidean': 'l2', 'ip': 'ip'}[metric]
         self.method_param = method_param
         # print(self.method_param,save_index,query_param)
         # self.ef=query_param['ef']
@@ -26,6 +26,7 @@ class HnswLib(BaseANN):
 
     def set_query_arguments(self, ef):
         self.p.set_ef(ef)
+        self.name = 'hnswlib (%s), ef:%d' % (self.method_param, ef)
 
     def query(self, v, n):
         # print(np.expand_dims(v,axis=0).shape)
