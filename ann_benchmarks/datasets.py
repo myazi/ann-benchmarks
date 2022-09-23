@@ -50,7 +50,7 @@ def get_dataset_batch(dataset, inp_file, page_size=1000000, dim=768):
         while 1:
             line = f.readline()
             line_count += 1
-            if not line or line_count > 1000000000:
+            if not line:
                 break
             fields = line.split("\t")
             if(len(fields) < 5):
