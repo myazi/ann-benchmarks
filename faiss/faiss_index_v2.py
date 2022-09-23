@@ -117,7 +117,7 @@ def index_type_hnsw(m, ef, dim=768):
 def index_type_hnsw_sq8(m, ef, dim=768):
     qtype = getattr(faiss.ScalarQuantizer, "QT_8bit")
     faiss_index = faiss.IndexHNSWSQ(dim, qtype, m, faiss.METRIC_INNER_PRODUCT)
-    faiss_index = faiss.IndexIDMap(faiss_index)
+    #faiss_index = faiss.IndexIDMap(faiss_index)
     faiss_index.efConstruction = ef
     return faiss_index
 
@@ -145,11 +145,19 @@ def index_type_sq8(qname="QT_8bit", dim=768):
     return faiss_index
 
 def index_type_pca(pca, dim=768):
-    pca_str = "PCA"+str(pca) + ",Flat"
+    pca_str = "PCA" + str(pca) + ",Flat"
     faiss_index = faiss.index_factory(dim, pca_str, faiss.METRIC_INNER_PRODUCT)
     faiss_index = faiss.IndexIDMap(faiss_index)
     return faiss_index
-#def index_type_hnsw_pq()
+def index_type_hnsw_pq(m, ef, pq_dim, dim=768):
+    hnsw_pq_str = "HNSW" + str(m) + ",PQ" + str(pq_dim)
+    faiss_index = faiss.index_factory(dim, hnsw_pq_str, faiss.METRIC_INNER_PRODUCT)
+    faiss_index.hnsw.efConstruction = ef
+    faiss_index.metric_type = faiss.METRIC_INNER_PRODUCT
+    assert faiss_index.metric_type == faiss.METRIC_INNER_PRODUCT
+    print(faiss_index.metric_type)
+    #faiss_index = faiss.IndexIDMap(faiss_index)
+    return faiss_index
 
 def load_data(inp_file, file_id):
     dim = 768
@@ -158,7 +166,7 @@ def load_data(inp_file, file_id):
 
     #  insert data
     start_time = time.time()
-    page_size = int(5000)
+    page_size = int(100000)
     line_count = int(0)
     insert_count = int(0)
     line_index = int(1)
@@ -207,7 +215,6 @@ def load_data(inp_file, file_id):
         print(M)
         print(ef)
         faiss_index = index_type_ivf_hnsw_sq8(nlist, nprobe, M, ef, dim)
-
     elif 'PQ' == index_type:
         m = int(cf.get('index_param', 'pq_m'))
         nbits = int(cf.get('index_param', 'pq_bits'))
@@ -236,6 +243,11 @@ def load_data(inp_file, file_id):
         print(nlist)
         print(nprobe)
         faiss_index = index_type_ivf_gpu(nlist, nprobe, dim)
+    elif 'HNSW_PQ' == index_type:
+        M = int(cf.get('index_param', 'M'))
+        ef = int(cf.get('index_param', 'ef'))
+        pq_dim = int(cf.get('index_param', 'pq_dim'))
+        faiss_index = index_type_hnsw_pq(M, ef, pq_dim, dim)
     else:
         print('index type error.')
         return
@@ -244,6 +256,7 @@ def load_data(inp_file, file_id):
     is_trained = faiss_index.is_trained
     print(is_trained)
     vector_num = get_vector_num(inp_file)
+    #vector_num = 1000000
     train_num = math.ceil(vector_num/1)
     print(train_num)
     if is_trained == False:
@@ -258,17 +271,18 @@ def load_data(inp_file, file_id):
         while 1:
             line = f.readline()
             index_line += 1
+            #if index_line > 1000000: break
             if not line:
                 break
             line_len = len(line.encode())
             fields = line.split("\t")
-            if(len(fields) < 5):
+            if(len(fields) < 4):
                 print("fields error: %d" % line_index)
                 offset = offset + line_len
                 line_index += 1
                 continue
             try:
-                vector_ub = b64str_2_vec(fields[4])
+                vector_ub = b64str_2_vec(fields[3])
                 #vec_norm = vector_norm([np.asarray(vector_ub)])
                 vec_norm = [np.asarray(vector_ub)]
                 vector = vec_norm[0]
@@ -290,13 +304,14 @@ def load_data(inp_file, file_id):
                 is_done = False
                 is_trained = True
                 while not is_done:
-                    print("start train1")
+                    print("start train")
                     try:
                         print(sys.getsizeof(vectors))
                         print(sys.getsizeof(offsets))
                         faiss_index.train(vectors)
                         print("index is trained")
-                        faiss_index.add_with_ids(vectors, offsets)
+                        #faiss_index.add_with_ids(vectors, offsets)
+                        faiss_index.add(vectors)
                         print("index add first")
                         is_done = True
                     except:
@@ -313,7 +328,8 @@ def load_data(inp_file, file_id):
                 is_done = False
                 while not is_done:
                     try:
-                        faiss_index.add_with_ids(vectors, offsets)
+                        #faiss_index.add_with_ids(vectors, offsets)
+                        faiss_index.add(vectors)
                         is_done = True
                     except:
                         is_done = False
@@ -329,7 +345,8 @@ def load_data(inp_file, file_id):
             is_done = False
             while not is_done:
                 try:
-                    faiss_index.add_with_ids(vectors[0:insert_count], offsets[0:insert_count])
+                    #faiss_index.add_with_ids(vectors[0:insert_count], offsets[0:insert_count])
+                    faiss_index.add(vectors[0:insert_count])
                     is_done = True
                 except:
                     is_done = False
@@ -344,7 +361,7 @@ def load_data(inp_file, file_id):
         print(f'Insert data done. Cost %.4fs' % (end_time - start_time))
         index_type += "_" + inp_file.split('/')[-1]
         #faiss_index = faiss.index_gpu_to_cpu(faiss_index) ###GPU 训练和查询大batch下存在问题，所以训练可以采用cpu训练，检索时小batch检索
-        faiss.write_index(faiss_index, "./faiss_" + index_type + ".index")
+        faiss.write_index(faiss_index, "./faiss_test1" + index_type + ".index")
         print('faiss index count %d' % (faiss_index.ntotal))
         end_time_save = time.time()
         print('save faiss index done. Cost %.4fs' % (end_time_save - end_time))
