@@ -23,6 +23,16 @@ import base64
 import configparser
 import h5py
 
+def vec_2_b64str(self, vec, fmt='768f'):
+    """
+    @summary: change vector to base64 string to save space
+    @param: vec 向量
+    @fmt: struct格式
+    """
+    b_vec = base64.b64encode(struct.pack(fmt, *vec))
+    s_vec = str(b_vec, encoding='utf-8')
+    return s_vec
+
 def b64str_2_vec(str, fmt='768f'):
     """
     change base64 string to vector
@@ -65,18 +75,13 @@ def get_train(train_file):
     line_index = 0
     with open(train_file) as f:
         for line in f:
-            #u, t, p, tp, vec = line.strip('\n').split('\t')
+           # u, t, p, tp, vec = line.strip('\n').split('\t')
             u, t, tp, p, vec = line.strip('\n').split('\t')
-            #try:
             vector_ub = b64str_2_vec(vec)
-            #except:
-            #    print(line_index)
             #vectors[line_index, :] = vector_norm([np.asarray(vector_ub)]) ##需要归一化
             vectors[line_index, :] = np.asarray([np.asarray(vector_ub)]) ##不需要归一化
             line_index += 1
-            #if line_index > 100000: break
-            #print(vector_ub)
-    return vectors#[0:100000,:]
+    return vectors
 
 def get_test(test_file):
 
