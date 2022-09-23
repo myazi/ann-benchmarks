@@ -2,6 +2,7 @@
 ann-benchmarks interfaces for Elasticsearch.
 Note that this requires X-Pack, which is not included in the OSS version of Elasticsearch.
 """
+import json
 import logging
 from time import sleep
 from urllib.error import URLError
@@ -46,8 +47,9 @@ class ElasticsearchScriptScoreQuery(BaseANN):
         self.name = f"elasticsearch-script-score-query_metric={metric}_dimension={dimension}"
         self.metric = metric
         self.dimension = dimension
-        self.index = f"es-ssq-{metric}-{dimension}"
-        self.es = Elasticsearch(["http://localhost:9200"])
+        self.index = f"es-ssqt-{metric}-{dimension}"
+        self.es = Elasticsearch(["http://localhost:9200"], timeout=100000)
+        #self.es = Elasticsearch(["http://127.0.0.1:9200"], timeout=10000)
         self.batch_res = []
         if self.metric == "euclidean":
             self.script = "1 / (1 + l2norm(params.query_vec, \"vec\"))"
@@ -58,6 +60,7 @@ class ElasticsearchScriptScoreQuery(BaseANN):
         es_wait()
 
     def fit(self, X):
+        """
         body = dict(settings=dict(number_of_shards=1, number_of_replicas=0))
         mapping = dict(
             properties=dict(
@@ -67,6 +70,20 @@ class ElasticsearchScriptScoreQuery(BaseANN):
         )
         self.es.indices.create(self.index, body=body)
         self.es.indices.put_mapping(mapping, self.index)
+        """
+        body = dict(settings=dict(number_of_shards=1, number_of_replicas=0), mappings = dict(
+                properties=dict(
+                    id=dict(type="keyword", store=True),
+                    vec=dict(type="dense_vector", dims=self.dimension, index=True, similarity= "cosine", index_options=dict(type="hnsw", m=32, ef_construction=500))
+                )
+            )
+        )
+        print(body)
+        print(self.index)
+        """
+        self.es.indices.delete(index=self.index)
+        self.es.indices.create(index=self.index, body=body)
+        #self.es.indices.put_mapping(mapping, self.index)
 
         def gen():
             for i, vec in enumerate(X):
@@ -75,10 +92,11 @@ class ElasticsearchScriptScoreQuery(BaseANN):
         (_, errors) = bulk(self.es, gen(), chunk_size=500, max_retries=9)
         assert len(errors) == 0, errors
 
-        self.es.indices.refresh(self.index)
-        self.es.indices.forcemerge(self.index, max_num_segments=1)
-
+        self.es.indices.refresh(index=self.index)
+        self.es.indices.forcemerge(index=self.index, max_num_segments=1)
+        """
     def query(self, q, n):
+        """
         body = dict(
             query=dict(
                 script_score=dict(
@@ -90,6 +108,56 @@ class ElasticsearchScriptScoreQuery(BaseANN):
                 )
             )
         )
+        """
+        """
+        body = dict(
+            query=dict(
+                script_score=dict(
+                    query={"bool": {
+                        "filter": {
+                            "range": { 
+                                "id":{ 
+                                    "gte": 500000
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    script=dict(
+                        source=self.script,
+                        params=dict(query_vec=q.tolist())
+                    )
+                )
+            )
+        )
+        """
+        body = {
+                "knn": {
+                    "field": "vec",
+                    "query_vector": q.tolist(),
+                    "k": 100,
+                    "num_candidates": 2000
+                    }
+                }
+        """
+        body = {
+                "knn": {
+                    "field": "vec",
+                    "query_vector": q.tolist(),
+                    "k": 100,
+                    "num_candidates": 2000,
+                    "filter": {
+                        "range": { 
+                            "id":{ 
+                                "gte": 500000
+                                }
+                            }
+                        }
+                    }
+                }
+        """
+        #res = self.es.search(index=self.index, body=body, size=n, _source=False, docvalue_fields=['id'],
+        #                     stored_fields="_none_", filter_path=["hits.hits.fields.id"])
         res = self.es.search(index=self.index, body=body, size=n, _source=False, docvalue_fields=['id'],
                              stored_fields="_none_", filter_path=["hits.hits.fields.id"])
         return [int(h['fields']['id'][0]) - 1 for h in res['hits']['hits']]
