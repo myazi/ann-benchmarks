@@ -111,21 +111,21 @@ def index_type_ivf_sq8(nlist, nprobe, dim=768):
 def index_type_hnsw(m, ef, dim=768):
     faiss_index = faiss.IndexHNSWFlat(dim, m, faiss.METRIC_INNER_PRODUCT)
     faiss_index = faiss.IndexIDMap(faiss_index)
-    faiss_index.efConstruction = ef
+    faiss_index.hnsw.efConstruction = ef
     return faiss_index
 
 def index_type_hnsw_sq8(m, ef, dim=768):
     qtype = getattr(faiss.ScalarQuantizer, "QT_8bit")
     faiss_index = faiss.IndexHNSWSQ(dim, qtype, m, faiss.METRIC_INNER_PRODUCT)
     #faiss_index = faiss.IndexIDMap(faiss_index)
-    faiss_index.efConstruction = ef
+    faiss_index.hnsw.efConstruction = ef
     return faiss_index
 
 def index_type_ivf_hnsw_sq8(nlist, nprobe, m, ef, dim=768):
     faiss_index = faiss.index_factory(dim, "IVF" + str(nlist) +"_HNSW" + str(m) + ",SQ8", faiss.METRIC_INNER_PRODUCT)
     faiss_index = faiss.IndexIDMap(faiss_index)
     faiss_index.nprobe = nprobe
-    faiss_index.efConstruction = ef
+    faiss_index.hnsw.efConstruction = ef
     return faiss_index
 
 def index_type_pq(m, nbits, dim=768):

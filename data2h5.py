@@ -13,15 +13,12 @@
 import sys
 import time
 import random
-from typing import NoReturn
 import numpy as np
 import os
 import struct
-import traceback
-import math
 import base64
-import configparser
 import h5py
+import faiss
 
 def vec_2_b64str(self, vec, fmt='768f'):
     """
@@ -40,21 +37,15 @@ def b64str_2_vec(str, fmt='768f'):
     return struct.unpack(fmt, base64.b64decode(str))
 
 def get_vector_num(inp_file):
-    page_size = int(10000)
-    print("inp_file = %s" % (inp_file))
     line_count = int(0)
-
+    page_size = int(10000)
     with open(inp_file, "r") as f:
         while 1:
             lines = f.readlines(page_size)
             if not lines:
                 break
             for line in lines:
-                #fields = line.split("\t")
-                #if(len(fields) < 2):
-                #    continue
                 line_count = line_count + 1
-
     print(f"vector count = %d" % line_count)
     return line_count
 
@@ -69,22 +60,22 @@ def vector_norm(p_rep):
     return p_rep / norm.reshape(-1, 1)
 
 def get_train(train_file):
-
     train_num = get_vector_num(train_file)
     vectors = np.zeros((train_num, 768), dtype="float32")
     line_index = 0
     with open(train_file) as f:
         for line in f:
-           # u, t, p, tp, vec = line.strip('\n').split('\t')
-            u, t, tp, p, vec = line.strip('\n').split('\t')
-            vector_ub = b64str_2_vec(vec)
-            #vectors[line_index, :] = vector_norm([np.asarray(vector_ub)]) ##需要归一化
-            vectors[line_index, :] = np.asarray([np.asarray(vector_ub)]) ##不需要归一化
+            u, t, p, tp, vec = line.strip('\n').split('\t')
+            try:
+                vector_ub = b64str_2_vec(vec)
+            except:
+                print(line_index)
+            vectors[line_index, :] = vector_norm([np.asarray(vector_ub)]) ##归一化
+            #vectors[line_index, :] = np.asarray([np.asarray(vector_ub)]) 
             line_index += 1
     return vectors
 
 def get_test(test_file):
-
     train_num = get_vector_num(test_file)
     vectors = np.zeros((train_num, 768), dtype="float32")
     line_index = 0
@@ -93,8 +84,78 @@ def get_test(test_file):
             vecs, query = line.strip('\n').split('\t')
             vec_list = vecs.split(' ')
             vectors[line_index, :] = np.asarray(vec_list)
+            #vectors[line_index, :] = vector_norm([np.asarray(vec_list)]) ##归一化
             line_index += 1
     return vectors
+
+def knn(train_file, test, topk=100, dim=768):
+    index_line = 0
+    insert_line = 0
+    page_size = 10000
+    vectors = np.zeros((page_size, dim), dtype="float32")
+    faiss_index = faiss.IndexFlatIP(dim)
+    is_trained = faiss_index.is_trained
+    start_time = time.time()
+    with open(train_file, "r") as f:
+        while 1:
+            line = f.readline()
+            index_line += 1
+            if not line:
+                break
+            line_list = line.strip('\n').split('\t')
+            if len(line_list) != 5:
+                print('data format is error...')
+            u, t, p, tp, vec = line_list
+            try:
+                vector_ub = b64str_2_vec(vec)
+            except:
+                print(index_line)
+            vectors[insert_line, :] = vector_norm([np.asarray(vector_ub)]) ##归一化
+            #vectors[insert_line, :] = np.asarray([np.asarray(vector_ub)])
+            insert_line += 1
+            if index_line % page_size == 0 and insert_line > 0 and is_trained == True:
+                try:
+                    faiss_index.add(vectors)
+                except:
+                    print(str(index_line) + "\t" + 'insert failed...')
+                vectors = np.zeros((page_size, dim), dtype="float32")
+                insert_line = int(0)
+                print(f"insert count = %d" % index_line)
+    if insert_line > 0:
+        try:
+            faiss_index.add(vectors[0:insert_line])
+        except:
+            print('insert failed, retrying...')
+    end_time = time.time()
+    print(f'Insert data done. Cost %.2fs' % (end_time - start_time))
+
+    neighbors = []
+    distances = []
+    top_list = []
+    num, dim = test.shape
+    sum_time = 0
+    for i in range(num):
+        start_time = time.time()
+        res_dist, res_p_id = faiss_index.search(np.asarray([test[i]]).astype('float32'), int(topk))
+        end_time = time.time()
+        sum_time += end_time - start_time
+        distances.append(1 - res_dist[0]) # 1 -ip = angular
+        neighbors.append(1 + res_p_id[0]) # id = id + 1
+        res_list = []
+        for j in range(len(res_p_id[0])):
+            p_id = res_p_id[0][j]
+            score = res_dist[0][j]
+            top_list.append([i, p_id, 1 - score])
+            print(str(i) + "\t" + str(p_id) + "\t" + str(1 - score))
+    print('Search done: Avg Cost %.4fs' % (sum_time / num))
+
+    start_time = time.time()
+    index_name = train_file.split('/')[-1]
+    faiss.write_index(faiss_index, "./faiss_baseline_" + index_name + ".index")
+    end_time = time.time()
+    print('faiss index count %d' % (faiss_index.ntotal))
+
+    return tuple(neighbors), tuple(distances)
 
 def get_top(top_file):
     neighbors = []
@@ -122,13 +183,12 @@ def get_top(top_file):
     neighbors.append(neighbor)
     return tuple(neighbors), tuple(distances)
 
-def data2h5(train_file, test_file, top_file, out_file):
-    train = get_train(train_file)
-    print(train.shape)
+def data2h5(train_file, test_file, out_file):
     test = get_test(test_file)
-    print(test.shape)
-    neighbors, distances = get_top(top_file)
+    neighbors, distances = knn(train_file, test)
+    train = get_train(train_file)
     
+    start_time = time.time()
     f = h5py.File(out_file, 'w')
     f.create_dataset("train", data=train)
     f.create_dataset("test", data=test)
@@ -137,12 +197,13 @@ def data2h5(train_file, test_file, top_file, out_file):
     f.attrs["type"] = "dense"
     f.attrs['point_type'] = "float"
     f.attrs['dimension'] = 768
-    f.attrs["distance"] = "ip" ##指定距离度量
+    f.attrs["distance"] = "angular" ##指定距离度量
     f.close()
+    end_time = time.time()
+    print('save hdf5 %.2fs' % (end_time - start_time))
 
 if __name__ == "__main__":
     train_file = sys.argv[1]
     test_file = sys.argv[2]
-    top_file = sys.argv[3]
-    out_file = sys.argv[4]
-    data2h5(train_file, test_file, top_file, out_file)
+    out_file = sys.argv[3]
+    data2h5(train_file, test_file, out_file)

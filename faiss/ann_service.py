@@ -51,20 +51,21 @@ class GetIndex:
 
 if __name__ == "__main__":
     global FINDEX
-    FINDEX = faiss.read_index('/data/work/dqa/http/ann_server/index/faiss_HNSW_SQ8_all_process_qtp_new_vec.index')
+    FINDEX = faiss.read_index('faiss_test1HNSW_SQ8_xaa_v5_vec.index')
     faiss.omp_set_num_threads(1)
     # load para
     global PARA_INDEX
     PARA_INDEX = {}
-    with open('/data/work/dqa/http/ann_server/index/all_process_qtp_new_vec_base64') as para_doc:
+    with open('/data/work/data/music/xaa_v5_vec') as para_doc:
         line_index = 0
         for line in para_doc:
             line_index += 1
             line_list = line.strip('\n').split('\t')
             if len(line_list) < 4: 
                 line_list = ["error"] * 4
-            sid, u, t, p = line_list[0:4]
-            PARA_INDEX[line_index] = "\t".join([t, p, u, sid])
+            #sid, u, t, p = line_list[0:4]
+            u, t, p, vec = line_list[0:4]
+            PARA_INDEX[line_index] = "\t".join([t, p, u])
     print("load done")
     urls = (
             '/', 'GetIndex'
