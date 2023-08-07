@@ -19,8 +19,8 @@ class GetIndex:
         p_emb_matrix = np.asarray(vector)
         if 'ef' in params:
             faiss.ParameterSpace().set_index_parameter(FINDEX, "efSearch", int(params['ef']))
-        else:
-            faiss.ParameterSpace().set_index_parameter(FINDEX, "efSearch", int(1200))
+        #else:
+        #    faiss.ParameterSpace().set_index_parameter(FINDEX, "efSearch", int(2000))
         start_time = time.time()
         D,I = FINDEX.search(p_emb_matrix.astype('float32'), k)
         end_request_time = time.time()
@@ -51,21 +51,28 @@ class GetIndex:
 
 if __name__ == "__main__":
     global FINDEX
-    FINDEX = faiss.read_index('faiss_test1HNSW_SQ8_xaa_v5_vec.index')
+    #FINDEX = faiss.read_index('/data/work/dqa/http/ann_server/index/faiss_HNSW_SQ8_baike_new_data_0324_process_qtpl_vec.index')
+    FINDEX = faiss.read_index('/data/work/dqa/http/ann_server/index/faiss_HNSW_SQ8_all_process_qtp_new_vec.index')
+    #FINDEX = faiss.read_index('/data/work/git/tools/movie/data/faiss_baseline_dy_0310_tp_vec.index')
     faiss.omp_set_num_threads(1)
     # load para
     global PARA_INDEX
     PARA_INDEX = {}
-    with open('/data/work/data/music/xaa_v5_vec') as para_doc:
+    #with open('/data/work/dqa/http/ann_server/index/baike_new_data_0324_process_qtpl_vec_base64') as para_doc:
+    with open('/data/work/dqa/http/ann_server/index/all_process_qtp_new_vec_base64') as para_doc:
+    #with open('/data/work/git/tools/movie/data/dy_0310_tp') as para_doc:
         line_index = 0
         for line in para_doc:
             line_index += 1
+            #if line_index > 1000000: break
             line_list = line.strip('\n').split('\t')
             if len(line_list) < 4: 
                 line_list = ["error"] * 4
-            #sid, u, t, p = line_list[0:4]
-            u, t, p, vec = line_list[0:4]
-            PARA_INDEX[line_index] = "\t".join([t, p, u])
+                print("error")
+            sid, u, t, p = line_list[0:4]
+            PARA_INDEX[line_index] = "\t".join([t, p, u, sid])
+            #u, t = line_list[0:2]
+            #PARA_INDEX[line_index] = "\t".join([t, u])
     print("load done")
     urls = (
             '/', 'GetIndex'
