@@ -45,7 +45,7 @@ class FaissHNSW_SQ8(Faiss):
 
     def query(self, v, n):
         if self._metric == 'angular':
-            v /= numpy.linalg.norm(v)
+            v /= np.linalg.norm(v)
         D, I = self.index.search(np.expand_dims(
             v, axis=0).astype(np.float32), n)
         return I[0]
